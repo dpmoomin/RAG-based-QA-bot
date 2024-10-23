@@ -1,14 +1,13 @@
-# embeddings.py
 from openai import OpenAI
 
 class OpenAIEmbedding:
     def __init__(self, api_key, model="text-embedding-3-small"):
         """
-        Initializes the OpenAIEmbedding model.
-        
+        OpenAI 임베딩 모델 초기화.
+
         Parameters:
-            api_key (str): OpenAI API key.
-            model (str): The embedding model to use.
+            api_key (str): OpenAI API 키
+            model (str): 사용할 임베딩 모델 (기본값: "text-embedding-3-small")
         """
         self.api_key = api_key
         self.model = model
@@ -16,21 +15,21 @@ class OpenAIEmbedding:
 
     def get_embedding(self, text):
         """
-        Generates an embedding for a single text input using the OpenAI API.
-        
+        주어진 텍스트의 임베딩을 생성합니다.
+
         Parameters:
-            text (str): The input text to be embedded.
-        
+            text (str): 임베딩할 텍스트
+
         Returns:
-            list: The embedding vector for the input text.
+            list: 임베딩 벡터
         """
         try:
             response = self.client.embeddings.create(
-                input=[text],  # Send as a list
-                model=self.model  # Use the specified embedding model
+                input=[text],
+                model=self.model
             )
             embedding = response.data[0].embedding
             return embedding
         except Exception as e:
-            print(f"[Error] Failed to generate embedding: {e}")
+            print(f"[오류] 임베딩 생성 실패: {e}")
             return []

@@ -1,8 +1,20 @@
 class PromptTemplate:
     def __init__(self, template):
+        """
+        프롬프트 템플릿 초기화.
+
+        Parameters:
+            template (str): 프롬프트 템플릿 문자열
+        """
         self.template = template
 
     def format(self, **kwargs):
+        """
+        템플릿에 인자를 포맷팅하여 반환합니다.
+
+        Returns:
+            str: 포맷팅된 템플릿 문자열
+        """
         return self.template.format(**kwargs)
 
 # CATEGORY_IDENTIFICATION_PROMPT: 사용자의 질문을 기반으로 관련 있는 카테고리를 식별하는 프롬프트 템플릿
