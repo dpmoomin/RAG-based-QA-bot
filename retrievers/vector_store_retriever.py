@@ -1,5 +1,5 @@
 class VectorStoreRetriever:
-    def __init__(self, vector_store, k=4, threshold=0.5):
+    def __init__(self, vector_store, k=4, threshold=0.35):
         """
         초기화 메서드입니다.
 
@@ -12,7 +12,7 @@ class VectorStoreRetriever:
         self.k = k
         self.threshold = threshold
 
-    def retrieve(self, query):
+    def retrieve(self, query, n_results):
         """
         주어진 질의에 대한 유사한 문서를 검색합니다.
 
@@ -20,12 +20,9 @@ class VectorStoreRetriever:
             query (str): 검색할 질의.
 
         Returns:
-            list: 검색된 문서 리스트.
+            list: 검색된 문서 리스트 또는 None.
         """
-        results = self.vector_store.similarity_search(query, n_results=self.k)
+        results = self.vector_store.similarity_search(query, n_results, threshold=self.threshold)
         
-        # 유사도 점수 확인
-        if results and results[0].get('score', 0) < self.threshold:
-            return None  # 유사도 점수가 임계값보다 낮을 때 None 반환
-        
-        return results
+        # 필터링된 결과 반환
+        return [result['text'] for result in results] if results else None

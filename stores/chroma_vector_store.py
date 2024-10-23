@@ -1,4 +1,5 @@
 import chromadb
+from chromadb.utils import embedding_functions
 from embeddings.embedding import OpenAIEmbedding
 import traceback
 import logging
@@ -23,8 +24,12 @@ class ChromaVectorStore:
         """
         self.api_key = api_key
         self.embedding_model = OpenAIEmbedding(api_key, model=embedding_model)
+        self.embedding_function = embedding_functions.OpenAIEmbeddingFunction(
+            api_key=api_key,
+            model_name=embedding_model
+        )
         self.client = chromadb.PersistentClient(path=persist_directory)
-        self.collection = self.client.get_or_create_collection(name="faq_collection")
+        self.collection = self.client.get_collection(name="faq_collection", embedding_function=self.embedding_function)
         self.batch_size = batch_size
         self.progress_file = progress_file
         self.load_progress()
@@ -87,7 +92,7 @@ class ChromaVectorStore:
                     if metadatas:
                         new_metadatas.append(metadatas[idx])
 
-                # 100개의 새 문서가 준비되면 추가
+                # 배치 사이즈만큼 문서가 준비되면 추가
                 if len(new_documents) >= self.batch_size:
                     self._try_add_documents(new_documents, new_ids, new_metadatas, start_index + idx)
                     new_documents, new_ids, new_metadatas = [], [], []
@@ -178,7 +183,7 @@ class ChromaVectorStore:
             list: 저장된 문서 리스트.
         """
         try:
-            self.collection = self.client.get_collection(name="faq_collection")
+            self.collection = self.client.get_collection(name="faq_collection", embedding_function=self.embedding_function)
             results = self.collection.get(include=["documents", "metadatas"])
             documents = results.get('documents', [])
             if documents:
@@ -191,36 +196,43 @@ class ChromaVectorStore:
             logging.debug("예외 정보: %s", traceback.format_exc())
             return []
 
-    def similarity_search(self, query, n_results=3):
+    def similarity_search(self, query, n_results=3, threshold=0.42):
         """
         질의에 대한 유사한 문서를 검색합니다.
 
         Parameters:
             query (str): 검색할 질의.
             n_results (int): 반환할 결과 수.
+            threshold (float): 유사도 점수의 임계값.
 
         Returns:
-            list: 검색된 문서 리스트.
+            list: 유사도 점수가 임계값을 넘는 문서 리스트.
         """
         try:
+            # 데이터베이스에서 결과 가져오기
             results = self.collection.query(query_texts=[query], n_results=n_results)
-            if results['documents']:
-                logging.info("유사한 문서 %d개를 찾았습니다.", len(results['documents'][0]))
+            logging.debug("Raw query results: %s", results)
+
+            filtered_results = []
+            if results and 'documents' in results and results['documents'] and 'distances' in results and results['distances']:
+                for i, doc in enumerate(results['documents'][0]):
+                    # 거리 값을 가져와 유사도로 변환 (1 / (1 + distance))
+                    distance = results['distances'][0][i]
+                    similarity_score = 1 / (1 + distance)
+
+                    # 모든 문서의 유사도를 로그로 기록
+                    logging.info("문서: %s, 유사도: %.4f", doc[:100], similarity_score)
+
+                    # 임계값을 넘는 유사도만 필터링
+                    if similarity_score >= threshold:
+                        doc_with_score = {'text': doc, 'score': similarity_score}
+                        filtered_results.append(doc_with_score)
+
+                logging.info("임계값 %.2f 이상인 유사한 문서 %d개를 찾았습니다.", threshold, len(filtered_results))
             else:
-                logging.info("유사한 문서를 찾지 못했습니다.")
-            return results['documents'][0] if results['documents'] else []
+                logging.info("문서를 찾지 못했습니다.")
+            return filtered_results
         except Exception as e:
             logging.error("유사도 검색 중 오류가 발생했습니다: %s", e)
             logging.debug("예외 정보: %s", traceback.format_exc())
             return []
-
-    def reset(self):
-        """
-        데이터베이스를 비우고 초기화합니다.
-        """
-        try:
-            self.client.reset()
-            logging.info("데이터베이스가 초기화되었습니다.")
-        except Exception as e:
-            logging.error("데이터베이스 초기화 중 오류가 발생했습니다: %s", e)
-            logging.debug("예외 정보: %s", traceback.format_exc())

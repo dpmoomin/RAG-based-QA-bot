@@ -1,4 +1,3 @@
-# main.py
 import pickle
 from utils.preprocess import preprocess_qa_data
 

@@ -1,4 +1,3 @@
-import pickle
 from config.settings import OPENAI_API_KEY
 from utils.extracter import extract_questions_and_answers
 from utils.splitter import FAQTextSplitter
@@ -16,7 +15,7 @@ def embed_and_store(file_path):
         return
 
     # 텍스트 스플리터 초기화
-    text_splitter = FAQTextSplitter(chunk_size=512, chunk_overlap=0)
+    text_splitter = FAQTextSplitter(chunk_size=256, chunk_overlap=0)
     documents, metadatas = text_splitter.split(qa_pairs)
 
     # 벡터 스토어 구성
