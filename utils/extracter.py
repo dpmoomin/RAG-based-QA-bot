@@ -2,14 +2,20 @@ import pickle
 from utils.preprocess import preprocess_qa_data
 
 def extract_questions_and_answers(file_path):
+    """
+    FAQ 데이터에서 질문과 답변을 추출합니다.
+
+    Parameters:
+        file_path (str): 파일 경로
+
+    Returns:
+        list: 질문과 답변 쌍 리스트
+    """
     try:
-        # 데이터 로드
         with open(file_path, 'rb') as f:
             faq_data = pickle.load(f)
 
-        # 전처리된 질문과 답변을 얻음
         qa_pairs = preprocess_qa_data(faq_data)
-
         return qa_pairs
 
     except FileNotFoundError:
